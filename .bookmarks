@@ -1,0 +1,37 @@
+
+export MARKS_ENV=`uname -s`
+export MARKPATH=$HOME/.marks
+
+function jump {
+	cd -P "$MARKPATH/$1" 2>/dev/null || echo "No such mark: $1"
+}
+
+function mark {
+	mkdir -p "$MARKPATH"; ln -s "$(pwd)" "$MARKPATH/$1"
+}
+
+function unmark {
+	rm -i "$MARKPATH/$1"
+}
+
+function marks {
+	if [ $MARKS_ENV = "Darwin" ]; then
+		ls -l "$MARKPATH" | tail -n +2 | sed 's/  / /g' | cut -d' ' -f9- | awk -F ' -> ' '{printf "%-10s -> %s\n", $1, $2}'
+	elif [ $MARKS_ENV = "Linux" ]; then
+		ls -l "$MARKPATH" | sed 's/  / /g' | cut -d ' ' -f 9- | sed 's/ -/\t-/g' && echo
+	fi
+}
+
+# tab completion for jump / unmark command
+function _completemarks() {
+	local curw=${COMP_WORDS[COMP_CWORD]}
+	if [ $MARKS_ENV = "Darwin" ]; then
+		local wordlist=$(find $MARKPATH -type l -print | sed "s#.*/\(.*\)#\1#")
+	elif [ $MARKS_ENV = "Linux" ]; then
+		local wordlist=$(find $MARKPATH -type l -printf "%f\n")
+	fi
+	COMPREPLY=($(compgen -W '${wordlist[@]}' -- "$curw"))
+	return 0
+}
+
+complete -F _completemarks jump mark unmark
